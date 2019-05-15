@@ -4,6 +4,8 @@ using std::cout;
 using std::cin;
 using std::endl;
 using std::istream;
+using std::min;
+using std::max;
 
 struct Point
 {
@@ -17,25 +19,11 @@ struct Point
     int y;
 };
 
-// 点与矩形存在三种关系：点在矩形外面、点在矩形边上、点在矩形里面
-enum Location
+struct Rect
 {
-    inside,
-    onside,
-    outside
-};
-
-class Rect
-{
-public:
+    Rect() {}
     Rect(istream &in);
-    int area() const;
-    int overlap_area(const Rect &other) const;
-    bool is_overlap(const Rect &other) const;
-    bool is_contain(const Rect &other) const;
-    Location where(const Point &pnt) const;
-
-private:
+    int area() const { return (right.x - left.x) * (right.y - left.y); }
     Point left; // 左下角的点
     Point right; // 右上角的点
 };
@@ -43,83 +31,49 @@ private:
 Rect::Rect(istream &in)
 {
     in >> left.x >> left.y >> right.x >> right.y;
-    if (left.x < right.x)
+    // 如果输入的两个点不是左下角和右上角，则进行修正
+    if ((left.x > right.x) && (left.y > right.y))
     {
         left.swap(right);
     }
-}
-
-int Rect::area() const
-{
-    return ((right.x - left.x) * (right.y - left.y));
-}
-
-int Rect::overlap_area(const Rect &other) const
-{
-    // 不重叠
-    if (!is_overlap(other))
+    else if ((left.x > right.x) && (left.y < right.y))
     {
-        return 0;
+        int tmp = left.x;
+        left.x = right.x;
+        right.x = tmp;
     }
-
-    // this包含other
-    if (is_contain(other))
+    else if ((left.x < right.x) && (left.y > right.y))
     {
-        return other.area();
+        int tmp = left.y;
+        left.y = right.y;
+        right.y = tmp;
     }
-    
-    // other包含this
-    if (other.is_contain(*this))
-    {
-        return area();
-    }
-    return 1;
-}
-
-bool Rect::is_overlap(const Rect &other) const
-{
-    Location first = where(other.left);
-    Location second = where(other.right);
-    if ((first == onside && second == outside) ||
-        (first == outside && second == onside) ||
-        (first == outside && second == outside))
-    {
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-}
-
-bool Rect::is_contain(const Rect &other) const
-{
-    return ((where(other.left) != outside) && (where(other.right) != outside));
-}
-
-Location Rect::where(const Point &pnt) const 
-{
-    // 可能会落在边上，这种情况待讨论
-    if ((pnt.x > left.x) && (pnt.x < right.x) && (pnt.y > left.y) && (pnt.y < right.y))
-    {
-        return inside;
-    }
-
-    if (((pnt.x == left.x) && (pnt.y >= left.y) && (pnt.y <= right.y)) || // 左边
-        ((pnt.x == right.x) && (pnt.y >= left.y) && (pnt.y <= right.y)) || // 右边
-        ((pnt.y == right.y) && (pnt.x >= left.x) && (pnt.x <= right.x)) || // 上边
-        ((pnt.y == left.y) && (pnt.x >= left.x) && (pnt.x <= right.x))) // 下边
-    {
-        return onside;
-    }
-
-    return outside;
 }
 
 int main()
 {
     Rect first(cin);
     Rect second(cin);
-    cout << first.overlap_area(second) << endl;
+    Rect overlap;
+
+    overlap.left.x = max(first.left.x, second.left.x);
+    overlap.right.x = min(first.right.x, second.right.x);
+
+    if (overlap.left.x >= overlap.right.x)
+    {
+        cout << 0 << endl;
+        return 0;
+    }
+
+    overlap.left.y = max(first.left.y, second.left.y);
+    overlap.right.y = min(first.right.y, second.right.y);
+
+    if (overlap.left.y >= overlap.right.y)
+    {
+        cout << 0 << endl;
+        return 0;
+    }
+
+    cout << overlap.area() << endl;
     return 0;
 }
